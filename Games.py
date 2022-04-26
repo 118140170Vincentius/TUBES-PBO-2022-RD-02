@@ -6,17 +6,24 @@ from tkinter import font
 
 import pygame
 from pygame.locals import *
+from pygame import mixer
 
 pygame.init()
 
-player_one = 'Player.png'
-player_bullet = 'bullet.png'
-enemy_one = 'enemy01.png'
-enemy_bullet = 'enemy_beam01.png'
+player_one = 'asset/Player.png'
+player_bullet = 'asset/bullet.png'
+enemy_one = 'asset/enemy01.png'
+enemy_bullet = 'asset/enemy_beam01.png'
 font = pygame.font.SysFont('Arial',30)
+bulletplayer_sound = 'asset/SoundEffect_Player.wav'
+bgmusic = 'asset/bensound-evolution.mp3'
+enemy_boss = 'asset/boss1.png'
 
 
-screen = pygame.display.set_mode((0,0),FULLSCREEN)
+
+
+
+screen = pygame.display.set_mode((800,600),SHOWN)
 s_width,s_height = screen.get_size()
 
 clock = pygame.time.Clock()
@@ -26,6 +33,7 @@ background_group = pygame.sprite.Group()
 player_group = pygame.sprite.Group()
 playerbullet_group = pygame.sprite.Group()
 enemy_group = pygame.sprite.Group()
+enemy_Boss_group = pygame.sprite.Group()
 enemybullet_group = pygame.sprite.Group()
 sprite_group = pygame.sprite.Group()
 
@@ -33,9 +41,10 @@ class Background(pygame.sprite.Sprite):
     def __init__(self,x,y):
         super().__init__()
         self.image = pygame.Surface([x,y])
-        self.image.fill('yellow')
+        self.image.fill('white')
         self.image.set_colorkey('black')
         self.rect = self.image.get_rect()
+
 
     def update(self):
         self.rect.y += 1
@@ -43,6 +52,8 @@ class Background(pygame.sprite.Sprite):
         if self.rect.y >s_height:
             self.rect.y = random.randrange(-10,0)
             self.rect.x = random.randrange(-400,s_width)
+    
+    
 
 class Player (pygame.sprite.Sprite):
 
@@ -51,6 +62,7 @@ class Player (pygame.sprite.Sprite):
         self.image = pygame.image.load(img)
         self.image = pygame.transform.scale(self.image, (50,50))
         self.rect = self.image.get_rect()
+        self.sound = pygame.mixer.Sound(bulletplayer_sound)
         # self.image.set_colorkey('black')
 
     def update(self):
@@ -65,6 +77,11 @@ class Player (pygame.sprite.Sprite):
         bullet.rect.y = mouse[1]
         playerbullet_group.add(bullet)
         sprite_group.add(bullet)
+    
+    def soundeffect(self):
+        pygame.mixer.Sound.set_volume(self.sound,0.05)
+        self.sound.play()
+        
 
 class Enemy(Player):
 
@@ -74,11 +91,14 @@ class Enemy(Player):
         self.rect.y = random.randrange(-500,0)
         screen.blit(self.image,(self.rect.x,self.rect.y))
 
-    def update(self):
+    def show_enemy(self):
         self.rect.y += 1
-        if self.rect.y >s_height:
+        if self.rect.y > s_height:
             self.rect.x = random.randrange(0, s_width)
-            self.rect.y = random.randrange(-2000, 0)
+            self.rect.y = random.randrange(-1000, 0)
+    def update(self):
+        if Game.score_value <=500:
+            self.show_enemy()
         self.shoot_enemy()
     def shoot_enemy(self):
         if self.rect.y in (0,100,250,500):
@@ -88,7 +108,25 @@ class Enemy(Player):
             enemybullet_group.add(enemybullet)
             sprite_group.add(enemybullet)
 
+class Enemy_boss(pygame.sprite.Sprite):
 
+    def __init__(self, img):
+        super().__init__()
+        self.image = pygame.image.load(img)
+        self.rect = self.image.get_rect()
+        self.rect.x = 250  
+        self.rect.y = -300
+        screen.blit(self.image,(self.rect.x,self.rect.y))
+
+    def update(self):
+        if Game.score_value >4000:
+            self.rect.y +=1
+            if self.rect.y == 50:
+                self.rect.y -= 1
+        
+        # elif self.rect.y == 10:
+        #     self.rect.y +=1
+        
 class PlayerBullet(pygame.sprite.Sprite):
 
     def __init__(self,img):
@@ -117,11 +155,15 @@ class EnemyBullet(PlayerBullet):
 
 
 
+
 class Game :
     
+    score_value = 0
+    count_hit2 = 0
     def __init__(self):
         self.count_hit = 0
-        self.score_value = 0
+        self.level = 10
+        self.lives = 3
         self.run_game()
 
     def create_background(self):
@@ -132,6 +174,10 @@ class Game :
             background_image.rect.y = random.randrange(0,s_height)
             background_group.add(background_image)
             sprite_group.add(background_image)
+    def bg_music(self):
+        pygame.mixer.music.load(bgmusic)
+        pygame.mixer.music.set_volume(1)
+        pygame.mixer.music.play(-1)
         
 
 
@@ -140,23 +186,54 @@ class Game :
         player_group.add(self.player)
         sprite_group.add(self.player)
     
-    def create_enemy(self):
+    def create_enemy_level1(self):
         for i in range (10):
             self.enemy = Enemy(enemy_one)
             enemy_group.add(self.enemy)
             sprite_group.add(self.enemy)
+    
+    def create_boss(self):
+            self.enemyboss = Enemy_boss(enemy_boss)
+            enemy_Boss_group.add(self.enemyboss)
+            sprite_group.add(self.enemyboss)
     
     def playerbullet_hits_enemy(self):
         hits = pygame.sprite.groupcollide(enemy_group,playerbullet_group, False, True)
         for i in hits :
             self.count_hit +=1
             if self.count_hit == 2:
-                self.score_value += 100
+                Game.score_value += 100
                 i.rect.x = random.randrange(0,s_width)
                 i.rect.y = random.randrange(-3000,-100)
                 self.count_hit = 0
+    def playerbullet_hits_boss(self):
+        hits = pygame.sprite.groupcollide(enemy_Boss_group,playerbullet_group, False, True)
+        for i in hits:
+            Game.count_hit2 +=1
+            if Game.count_hit2 == 30:
+                Game.score_value += 300
+                Game.count_hit2 = 0
+
+
+    def enemybullet_hits_player(self):
+        hits = pygame.sprite.spritecollide(self.player,enemybullet_group,True)
+        if hits:
+            self.lives -= 1
+            if self.lives == 0:
+                self.lives +=3
+                # pygame.quit()
+                # sys.exit()
+
+    def create_lives_player(self):
+        self.lives_img = pygame.image.load(player_one)
+        self.lives_img = pygame.transform.scale(self.lives_img,(30,30))
+        n = 0
+        for i in range(self.lives):
+            screen.blit(self.lives_img,(0+n,s_height-50))
+            n += 80
+
     def show_score(self):
-        score = font.render('Score : ' + str(self.score_value), True, ('white'))
+        score = font.render('Score : ' + str(Game.score_value), True, ('white'))
         screen.blit(score,(50,50))
 
     
@@ -167,24 +244,33 @@ class Game :
     def run_game(self):
         self.create_background()
         self.create_player()
-        self.create_enemy()
+        self.bg_music()
+        self.create_boss()
+        self.create_enemy_level1()
         while True:
             screen.fill('black')
             self.show_score()
             self.playerbullet_hits_enemy()
+            self.enemybullet_hits_player()
+            self.playerbullet_hits_boss()
+            self.create_lives_player()
             self.run_update()
             for event in pygame.event.get():
                 if event.type == QUIT: 
                     pygame.quit()
                     sys.exit()
                 if event.type == KEYDOWN:
+                    if event.key == K_SPACE:
+                        self.player.shoot()
+                        self.player.soundeffect()
                     if event.key == K_ESCAPE:
                         pygame.quit()
                         sys.exit()
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    mouse_presses = pygame.mouse.get_pressed()
-                    if mouse_presses[0]:
-                        self.player.shoot()
+                # if event.type == pygame.MOUSEBUTTONDOWN:
+                #     mouse_presses = pygame.mouse.get_pressed()
+                #     if mouse_presses[0]:
+                #         self.player.soundeffect()
+                #         self.player.shoot()
             pygame.display.update()
             clock.tick(FPS)
 
