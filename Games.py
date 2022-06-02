@@ -15,13 +15,14 @@ player_bullet = 'asset/bullet.png'
 enemy_one = 'asset/enemy01.png'
 enemy_bullet = 'asset/enemy_beam01.png'
 enemy2_bullet = 'asset/enemy_beam01.png'
-font = pygame.font.SysFont('Arial',30)
+font = pygame.font.Font('asset/VCR_OSD_MONO_1.001.ttf',30)
 bulletplayer_sound = 'asset/SoundEffect_Player.wav'
 bgmusic = 'asset/bg_music1.wav'
 enemy2  = 'asset/boss1.png'
 enemy2_1  = 'asset/boss1.png'
 
-
+player_pewpew = 'asset/laserShootPlayer.wav'
+enemy_pewpew = 'asset/laserShootEnemy.wav'
 
 
 
@@ -66,7 +67,7 @@ class Player (pygame.sprite.Sprite):
         self.image = pygame.image.load(img)
         self.image = pygame.transform.scale(self.image, (50,50))
         self.rect = self.image.get_rect()
-        self.sound = pygame.mixer.Sound(bulletplayer_sound)
+        self.sound = pygame.mixer.Sound(player_pewpew)
         # self.image.set_colorkey('black')
 
     def update(self):
@@ -83,7 +84,7 @@ class Player (pygame.sprite.Sprite):
         sprite_group.add(bullet)
     
     def soundeffect(self):
-        pygame.mixer.Sound.set_volume(self.sound,0.05)
+        pygame.mixer.Sound.set_volume(self.sound,0.5)
         self.sound.play()
         
 
@@ -94,6 +95,7 @@ class Enemy(Player):
         self.image = pygame.transform.scale(self.image, (40, 40))
         self.rect.x = random.randrange(0,s_width)
         self.rect.y = random.randrange(-500,0)
+        self.sound = pygame.mixer.Sound(enemy_pewpew)
         screen.blit(self.image,(self.rect.x,self.rect.y))
 
     def update(self):
@@ -111,6 +113,8 @@ class Enemy(Player):
             enemybullet.rect.y = self.rect.y + 40
             enemybullet_group.add(enemybullet)
             sprite_group.add(enemybullet)
+            pygame.mixer.Sound.set_volume(self.sound,0.5)
+            self.sound.play()
 
 class Enemy2(Enemy):
 
